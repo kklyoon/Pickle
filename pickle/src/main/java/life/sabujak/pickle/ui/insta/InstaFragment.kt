@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.constraintlayout.motion.widget.MotionLayout
 import androidx.databinding.DataBindingUtil
 import androidx.dynamicanimation.animation.DynamicAnimation
 import androidx.dynamicanimation.animation.FlingAnimation
@@ -35,10 +36,6 @@ class InstaFragment : Fragment() {
     }
 
     var selectedPosition: Int = -1
-
-    val flingAnimationY: FlingAnimation by lazy(LazyThreadSafetyMode.NONE){
-        FlingAnimation(preview_layout, DynamicAnimation.Y).setFriction(1.1f).setMaxValue(preview_layout.height.toFloat())
-    }
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -71,12 +68,17 @@ class InstaFragment : Fragment() {
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_insta, container, false)
         binding.viewModel = preViewModel
         binding.recyclerView.adapter = adapter
-        binding.recyclerView.layoutManager = gridLayoutManager
+        binding.recyclerView.apply{
+            layoutManager = gridLayoutManager
+        }
         adapter.itemClick = object: InstaAdapter.ItemClick{
             override fun onClick(view: View, position: Int) {
+                logger.d("Clicked position: " + position)
                 selectedPosition = position
                 loadImageView(position)
-                animateForSelection(view)
+                (binding.root as MotionLayout).transitionToStart()
+                logger.d("recyclerview : " + binding.recyclerView.top + " itemview : "+ view.top)
+                binding.recyclerView.smoothScrollBy(0, view.top)
             }
         }
         return binding.root
@@ -92,18 +94,7 @@ class InstaFragment : Fragment() {
             Glide.with(iv_preview).load(it).into(iv_preview)
         }
     }
-    fun animateForSelection(selectedView: View){
-        // fling down animation preview_layout
-//        FlingAnimation(preview_layout, DynamicAnimation.SCROLL_Y).apply{
-//            setStartVelocity(-100)
-//            setMinValue(0)
-//            setMaxValue(preview_layout.height.toFloat())
-//            start()
-//        }
-//        flingAnimationY.setStartVelocity()
-        flingAnimationY.start()
-
-        // scroll recyclerview to selected view
+    fun animateLayoutForClick(itemView: View, position: Int){
 
     }
 }
