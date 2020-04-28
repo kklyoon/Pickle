@@ -1,6 +1,7 @@
 package life.sabujak.pickle.ui.insta.internal
 
 import android.graphics.Bitmap
+import android.graphics.Matrix
 import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool
 import com.bumptech.glide.load.resource.bitmap.BitmapTransformation
 import com.bumptech.glide.util.Util
@@ -46,9 +47,16 @@ class CropTransformation(private val cropData: CropData): BitmapTransformation()
         val width = widthPercent * bitmapWidth
         val height = heightPercent * bitmapHeight
 
+        val matrix = Matrix()
+        val orientation = cropData.orientation
+        matrix.postRotate(orientation.toFloat())
+
 
         logger.d("createBitmap ${left}, ${top}, ${width}, ${height}")
-        return Bitmap.createBitmap(toTransform, left.toInt(), top.toInt(), width.toInt(), height.toInt())
+        if(orientation == 0)
+            return Bitmap.createBitmap(toTransform, left.toInt(), top.toInt(), width.toInt(), height.toInt())
+        else
+            return Bitmap.createBitmap(toTransform, left.toInt(), top.toInt(), width.toInt(), height.toInt(), matrix, true)
     }
 
     override fun updateDiskCacheKey(messageDigest: MessageDigest) {

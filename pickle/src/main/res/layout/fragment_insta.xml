@@ -91,5 +91,13 @@
             android:layout_height="match_parent"
             app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 
+        <ProgressBar
+            android:id="@+id/progressbar"
+            android:layout_width="@dimen/progress_size"
+            android:layout_height="@dimen/progress_size"
+            android:layout_gravity="center"
+            android:visibility="invisible"
+            />
+
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 </layout>

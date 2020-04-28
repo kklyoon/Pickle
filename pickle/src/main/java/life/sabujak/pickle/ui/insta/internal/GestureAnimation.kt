@@ -12,8 +12,7 @@ import life.sabujak.pickle.util.Logger
  */
 internal class GestureAnimation(
     private val trackPad: View,
-    private val actionListener: ActionListener,
-    private val loggingListener: CropDataListener?
+    private val actionListener: ActionListener
 ) {
     val logger = Logger.getLogger(this::class.java.simpleName)
 
@@ -72,7 +71,6 @@ internal class GestureAnimation(
             when (event.action) {
                 MotionEvent.ACTION_UP -> {
                     actionListener.onMoveEnded()
-                    loggingListener?.onActionUp()
                 }
             }
             true

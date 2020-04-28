@@ -1,12 +1,11 @@
 package life.sabujak.pickle.ui.insta
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.Rect
-import android.graphics.RectF
-import android.graphics.drawable.BitmapDrawable
+import android.graphics.*
 import android.graphics.drawable.Drawable
-import android.graphics.drawable.TransitionDrawable
+import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
 import android.util.AttributeSet
 import android.view.Gravity
 import android.view.View
@@ -15,12 +14,11 @@ import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.view.ViewTreeObserver
 import android.widget.FrameLayout
 import android.widget.ImageView
-import androidx.annotation.MainThread
-import androidx.core.graphics.drawable.toBitmap
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.bumptech.glide.request.target.CustomTarget
 import com.bumptech.glide.request.transition.Transition
+import kotlinx.coroutines.*
 import life.sabujak.pickle.R
 import life.sabujak.pickle.data.entity.PickleItem
 import life.sabujak.pickle.ui.insta.internal.*
@@ -50,7 +48,7 @@ class CropLayout @JvmOverloads constructor(
     private lateinit var animation: GestureAnimation
 
     private var cropImageView: CropImageView
-    private var item: PickleItem? = null
+    private var selectItem: PickleItem? = null
 
     private val cropOverlay: RectangleCropOverlay by lazy {
         RectangleCropOverlay(context, null, 0, attrs)
@@ -58,7 +56,9 @@ class CropLayout @JvmOverloads constructor(
     private var frameCache: RectF? = null
     private val listeners = CopyOnWriteArrayList<OnCropListener>()
 
-    private var cropDataListener: CropDataListener? = null
+    private var cropDataListener: CropDataListener
+
+    private var selectionManager: InstaSelectionManager? = null
 
     init {
         logger.d("init")
@@ -115,18 +115,24 @@ class CropLayout @JvmOverloads constructor(
                 return true
             }
         })
+        cropDataListener = object : CropDataListener {
+            override fun onMoveEnd() {
+                val cropData = getCropData()
+                val selectedMedia = selectItem
+                logger.d("onMoveEnd() ${cropData}")
+                selectedMedia?.let {
+                    selectionManager?.updateCropData(it, cropData)
+                }
+            }
+        }
     }
 
     fun addOnCropListener(listener: OnCropListener) {
         listeners.addIfAbsent(listener)
     }
 
-    fun removeOnCropListener(listener: OnCropListener) {
-        listeners.remove(listener)
-    }
-
-    fun setOnCropDataListener(listener: CropDataListener){
-        cropDataListener = listener
+    private fun removeCropListener() {
+        listeners.clear()
     }
 
     /**
@@ -147,43 +153,10 @@ class CropLayout @JvmOverloads constructor(
         )
     }
 
-    /**
-     * Crop the image and returns the result via [OnCropListener].
-     *
-     * If cropping is successful [OnCropListener.onSuccess] would be called, otherwise [OnCropListener.onFailure].
-     * This [crop] only works when the image is fully on the frame, otherwise [crop] does nothing.
-     */
-    @MainThread
-    fun crop() {
-        if (isOffFrame()) {
-            logger.d("Image is off of the frame.")
-            return
-        }
-        val source = cropImageView.drawable.toBitmap()
-//        val source = (cropImageView.drawable as TransitionDrawable).bitmap
-        frameCache?.let{
-            getCropData()?.let{
-                try{
-//                    Glide.with(context).load(source)
-                    Glide.with(context).asBitmap().load(source)
-                        .transform(CropTransformation(it)).into(object : CustomTarget<Bitmap>() {
-                            override fun onResourceReady(
-                                result: Bitmap,
-                                transition: Transition<in Bitmap>?
-                            ) {
-                                for (listener in listeners) {
-                                    listener.onSuccess(result)
-                                }
-                            }
-
-                            override fun onLoadCleared(placeholder: Drawable?) {
-                            }
-                        })
-                } catch (e: Exception) {
-                    for (listener in listeners) {
-                        listener.onFailure(e)
-                    }
-                }
+    suspend fun crop() {
+        getCropData()?.let { cropData ->
+            getBitmapFromUri(selectItem!!.mediaUri)?.let { bitmap ->
+                glideTransForm(bitmap, cropData)
             }
         }
     }
@@ -195,6 +168,18 @@ class CropLayout @JvmOverloads constructor(
             val topOffset = (it.top - targetRect.top).toInt()
             val width = it.width().toInt()
             val height = it.height().toInt()
+            val orientation = selectItem?.media?.orientation
+            orientation?.let {
+                return CropData(
+                    leftOffset,
+                    topOffset,
+                    width,
+                    height,
+                    targetRect.width(),
+                    targetRect.height(),
+                    it
+                )
+            }
             return CropData(
                 leftOffset,
                 topOffset,
@@ -203,11 +188,22 @@ class CropLayout @JvmOverloads constructor(
                 targetRect.width(),
                 targetRect.height()
             )
+
         }
         return null
     }
 
+
     fun setCropScale() {
+//        if(selectionManager?.hasCropData(selectItem.getId()))
+        selectionManager?.let { selectionManager ->
+            selectItem?.let { item ->
+                if (selectionManager.hasCropData(item))
+                    logger.d("has cropData")
+                else
+                    logger.d("has no cropData")
+            }
+        }
         cropOverlay.visibility = View.VISIBLE
         cropImageView.scaleX = 1f
         cropImageView.scaleY = 1f
@@ -219,17 +215,20 @@ class CropLayout @JvmOverloads constructor(
         cropImageView.adjustViewBounds = true
         cropImageView.layoutParams = LayoutParams(WRAP_CONTENT, WRAP_CONTENT, Gravity.CENTER)
         cropImageView.requestLayout()
-        animator = GestureAnimator.of(cropImageView, frame, scale)
-        animation = GestureAnimation(cropOverlay, animator, cropDataListener)
+        animator = GestureAnimator.of(cropImageView, frame, scale, cropDataListener)
+        animation = GestureAnimation(cropOverlay, animator)
         animation.start()
-//        val position = IntArray(2).apply { cropImageView.getLocationOnScreen(this) }
-//        logger.d("setCropScale() : cropImageView ${cropImageView.left}, ${cropImageView.top}, ${cropImageView.right}, ${cropImageView.bottom}, ${cropImageView.x}, ${cropImageView.y}" +
-//                " scaleX : ${cropImageView.scaleX} ")
-//        logger.d("setCropScale() : cropImageView realposition ${position[0]}, ${position[1]}")
+        val position = IntArray(2).apply { cropImageView.getLocationOnScreen(this) }
+        logger.d(
+            "setCropScale() : cropImageView ${cropImageView.left}, ${cropImageView.top}, ${cropImageView.right}, ${cropImageView.bottom}, ${cropImageView.x}, ${cropImageView.y}" +
+                    " scaleX : ${cropImageView.scaleX} "
+        )
+        logger.d("setCropScale() : cropImageView realposition ${position[0]}, ${position[1]}")
     }
 
     fun setAspectRatio() {
         if (::animation.isInitialized) animation.stop()
+        removeCropListener()
         cropOverlay.visibility = View.GONE
         cropImageView.layoutParams = LayoutParams(MATCH_PARENT, MATCH_PARENT, Gravity.CENTER)
         cropImageView.scaleType = ImageView.ScaleType.FIT_CENTER
@@ -251,14 +250,57 @@ class CropLayout @JvmOverloads constructor(
     }
 
     fun isEmpty(): Boolean {
-        this.item?.let{ return false}
+        this.selectItem?.let { return false }
         return true
     }
 
     fun setPickleMedia(item: PickleItem) {
-        this.item = item
-        Glide.with(this.context).load(this.item?.mediaUri).transition(DrawableTransitionOptions.withCrossFade()).into(cropImageView)
+        this.selectItem = item
+        Glide.with(this.context).load(this.selectItem?.mediaUri)
+            .transition(DrawableTransitionOptions.withCrossFade()).into(cropImageView)
     }
+
+    fun setSelectionManager(selectionManager: InstaSelectionManager) {
+        this.selectionManager = selectionManager
+    }
+
+    suspend fun getBitmapFromUri(uri: Uri): Bitmap? = withContext(Dispatchers.IO) {
+        if (Build.VERSION.SDK_INT < 29) {
+            return@withContext MediaStore.Images.Media.getBitmap(
+                context.contentResolver,
+                selectItem?.mediaUri
+            )
+        } else {
+            val source =
+                ImageDecoder.createSource(context.contentResolver, selectItem?.mediaUri!!)
+            return@withContext ImageDecoder.decodeBitmap(source)
+        }
+    }
+
+    suspend fun glideTransForm(bitmap: Bitmap, cropData: CropData) =
+        withContext(Dispatchers.Default) {
+            logger.d("glideTransFrom $cropData")
+            try {
+                Glide.with(context).asBitmap().load(bitmap)
+                    .transform(CropTransformation(cropData)).into(object : CustomTarget<Bitmap>() {
+                        override fun onResourceReady(
+                            result: Bitmap,
+                            transition: Transition<in Bitmap>?
+                        ) {
+                            for (listener in listeners) {
+                                listener.onSuccess(result)
+                            }
+                        }
+
+                        override fun onLoadCleared(placeholder: Drawable?) {
+                        }
+                    })
+            } catch (e: Exception) {
+                for (listener in listeners) {
+                    listener.onFailure(e)
+                }
+            }
+        }
 
     fun clear() {
         cropImageView.setImageResource(android.R.color.transparent)

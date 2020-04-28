@@ -9,5 +9,6 @@ class Image(
     dateAdded: Long,
     fileSize: Long,
     mediaType: Int,
-    mimeType: String
-) : Media(id, uri, bucketId, dateAdded, fileSize, mediaType, mimeType)
+    mimeType: String,
+    orientation: Int
+) : Media(id, uri, bucketId, dateAdded, fileSize, mediaType, mimeType, orientation)

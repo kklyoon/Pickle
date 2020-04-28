@@ -13,16 +13,10 @@ object Pickle {
         )
     }
 
-//    fun start(fragmentManager: FragmentManager, containerId: Int){
-//        fragmentManager.beginTransaction()
-//            .add(containerId, InstaFragment(),"Insta")
-//            .addToBackStack(null)
-//            .commit()
-//    }
 
-    fun start(fragmentManager: FragmentManager, containerId: Int, listener: OnResultListener){
+    fun startInsta(fragmentManager: FragmentManager, containerId: Int, listener: OnResultListener){
         fragmentManager.beginTransaction()
-            .add(containerId, InstaFragment(Config.Builder(listener).build()),"Insta")
+            .add(containerId, InstaFragment(Config.Builder(listener, type = Config.Type.INSTA).build()),"Insta")
             .addToBackStack(null)
             .commit()
     }

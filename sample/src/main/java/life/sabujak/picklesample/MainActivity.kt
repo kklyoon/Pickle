@@ -30,7 +30,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.insta.setOnClickListener {
-            Pickle.start(supportFragmentManager, R.id.frag_container, object : OnResultListener {
+            Pickle.startInsta(supportFragmentManager, R.id.frag_container, object : OnResultListener {
                 override fun onSuccess(result: PickleResult) {
                     result.mediaList.forEach {
                         Log.e("MainActivity", it.toString())

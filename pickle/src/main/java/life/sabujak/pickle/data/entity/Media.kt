@@ -9,10 +9,10 @@ abstract class Media(
     val dateAdded: Long,
     val fileSize: Long,
     val mediaType: Int,
-    val mimeType: String
-
+    val mimeType: String,
+    val orientation: Int = 0
 ) {
     override fun toString(): String {
-        return "id = $id, bucketId = $bucketId, uri = $uri dateAdded = $dateAdded, fileSize = $fileSize, mediaType = $mediaType, mimeType = $mimeType"
+        return "id = $id, bucketId = $bucketId, uri = $uri dateAdded = $dateAdded, fileSize = $fileSize, mediaType = $mediaType, mimeType = $mimeType, orientation = $orientation"
     }
 }

@@ -18,11 +18,14 @@ import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.GridLayoutManager
 import com.bumptech.glide.Glide
 import com.google.android.material.appbar.AppBarLayout
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import life.sabujak.pickle.Config
 import life.sabujak.pickle.R
 import life.sabujak.pickle.data.entity.PickleItem
 import life.sabujak.pickle.databinding.FragmentInstaBinding
-import life.sabujak.pickle.ui.insta.internal.CropDataListener
 import life.sabujak.pickle.util.Logger
 import life.sabujak.pickle.util.ext.showToast
 
@@ -39,6 +42,10 @@ class InstaFragment constructor() : Fragment(), OnInstaEventListener {
         GridLayoutManager(context, 3)
     }
     private lateinit var config: Config
+
+    private val parentJob = Job()
+    private val coroutineScope =
+        CoroutineScope(Dispatchers.Main + parentJob)
 
     constructor(config: Config) : this() {
         this.config = config
@@ -86,18 +93,14 @@ class InstaFragment constructor() : Fragment(), OnInstaEventListener {
                 })
                 (it as CoordinatorLayout.LayoutParams).behavior = behavior
             }
-            ivPreview.setOnCropDataListener(object : CropDataListener {
-                override fun onActionUp() {
-                    val cropData = ivPreview.getCropData()
-                    val selectedMedia = instaViewModel.selectedItem
-                    logger.d("onActionUp() ${cropData}")
-                    instaViewModel.selectionManager.updateCropData(selectedMedia.getId(), cropData)
-                }
-            })
+            ivPreview.setSelectionManager(instaViewModel.selectionManager)
             ivPreview.addOnCropListener(object : OnCropListener {
                 override fun onSuccess(bitmap: Bitmap) {
-                    val dialogLayout = layoutInflater.inflate(R.layout.dialog_result, container, false)
+                    logger.d("Bitmap ID : ${bitmap.generationId}")
+                    val dialogLayout =
+                        layoutInflater.inflate(R.layout.dialog_result, container, false)
                     var dialogImageView = dialogLayout.findViewById<ImageView>(R.id.iv_image)
+                    progressbar.visibility = View.GONE
                     context?.let {
                         Glide.with(dialogLayout.context).load(bitmap).fitCenter()
                             .into(dialogImageView)
@@ -141,9 +144,11 @@ class InstaFragment constructor() : Fragment(), OnInstaEventListener {
                     instaViewModel.selectionManager.setMultiCropData(cropData = data)
                 }
             }
+            // #99 delete later
             if (it) binding.ivRatio.visibility = INVISIBLE
             else binding.ivRatio.visibility = VISIBLE
             instaViewModel.setAspectRatio(it)
+
             instaTopViewModel.setCountable(it)
         })
 
@@ -151,13 +156,13 @@ class InstaFragment constructor() : Fragment(), OnInstaEventListener {
             activity?.let {
                 if (instaViewModel.selectedItem.media.mediaType != MEDIA_TYPE_IMAGE) {
                     showToast("video is not supported now")
-                }
-                else {
+                } else {
                     if (instaViewModel.isAspectRatio.value == false) {
-                        if (binding.ivPreview.isOffFrame()) showToast("Image is off of the frame.")
-                        else binding.ivPreview.crop()
-                    }
-                    else {
+                        coroutineScope.launch(Dispatchers.Main) {
+                            binding.progressbar.visibility = VISIBLE
+                            binding.ivPreview.crop()
+                        }
+                    } else {
                         config.onResultListener.onSuccess(instaViewModel.getPickleResult())
                         it.supportFragmentManager.popBackStack()
                     }
@@ -165,10 +170,12 @@ class InstaFragment constructor() : Fragment(), OnInstaEventListener {
             }
         })
         instaTopViewModel.isCountVisible.observe(viewLifecycleOwner, Observer {
-            if(it){
-                instaViewModel.selectionManager.count.observe(viewLifecycleOwner, Observer{ countInfo->
-                    instaTopViewModel.count.postValue(countInfo)
-                })
+            if (it) {
+                instaViewModel.selectionManager.count.observe(
+                    viewLifecycleOwner,
+                    Observer { countInfo ->
+                        instaTopViewModel.count.postValue(countInfo)
+                    })
             } else {
                 instaViewModel.selectionManager.count.removeObservers(viewLifecycleOwner)
             }
@@ -188,7 +195,7 @@ class InstaFragment constructor() : Fragment(), OnInstaEventListener {
     override fun onItemClick(view: View?, item: PickleItem) {
         instaViewModel.setSelected(item)
         instaViewModel.selectionManager.itemClick(
-            item.getId(),
+            item,
             binding.ivPreview.getCropData()
         )
         if (instaViewModel.selectedItem.media.mediaType != MEDIA_TYPE_IMAGE) {
@@ -203,7 +210,7 @@ class InstaFragment constructor() : Fragment(), OnInstaEventListener {
         }
     }
 
-    private fun showActionBar(){
+    private fun showActionBar() {
         (activity as? AppCompatActivity)?.supportActionBar?.show()
     }
 

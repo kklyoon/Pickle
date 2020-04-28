@@ -80,7 +80,7 @@ class RectangleCropOverlay @JvmOverloads constructor(
     }
   }
 
-  open fun drawBackground(canvas: Canvas, paint: Paint) {
+  fun drawBackground(canvas: Canvas, paint: Paint) {
     canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), backgroundPaint)
   }
 

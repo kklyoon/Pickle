@@ -42,22 +42,25 @@ internal class GestureAnimator(
 
     companion object {
 
-        fun of(target: View, frame: RectF, scale: Float): GestureAnimator {
+        fun of(target: View, frame: RectF, scale: Float, endListener: CropDataListener): GestureAnimator {
             val horizontalAnimator = HorizontalAnimatorImpl(
                 targetView = target,
                 leftBound = frame.left,
                 rightBound = frame.right,
-                maxScale = scale
+                maxScale = scale,
+                aniEndListener = endListener
             )
             val verticalAnimator = VerticalAnimatorImpl(
                 targetView = target,
                 topBound = frame.top,
                 bottomBound = frame.bottom,
-                maxScale = scale
+                maxScale = scale,
+                aniEndListener = endListener
             )
             val scaleAnimator = ScaleAnimatorImpl(
                 targetView = target,
-                maxScale = scale
+                maxScale = scale,
+                aniEndListener = endListener
             )
             return GestureAnimator(
                 horizontalAnimator,

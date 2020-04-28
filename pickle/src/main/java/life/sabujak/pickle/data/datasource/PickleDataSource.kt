@@ -79,7 +79,8 @@ class PickleDataSource(
         val mimeType =
             cursor.getString(cursor.getColumnIndex(MediaStore.Files.FileColumns.MIME_TYPE))
         val isVideo = MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO == mediaType
-        logger.d("id = $id bucketId = $bucketId mediaType = $mediaType isVideo = $isVideo dateAdded = $dateAdded fileSize = $fileSize mimeType = $mimeType")
+        val orientation = cursor.getInt(cursor.getColumnIndex(MediaStore.Images.ImageColumns.ORIENTATION))
+        logger.d("id = $id bucketId = $bucketId mediaType = $mediaType isVideo = $isVideo dateAdded = $dateAdded fileSize = $fileSize mimeType = $mimeType orientation = $orientation")
         val uri = ContentUris.withAppendedId(cursorFactory.getContentUri(), id)
 
         return if (isVideo) {
@@ -91,7 +92,7 @@ class PickleDataSource(
             )
         } else {
             PickleItem(
-                Image(id, uri, bucketId, dateAdded, fileSize, mediaType, mimeType),
+                Image(id, uri, bucketId, dateAdded, fileSize, mediaType, mimeType, orientation),
                 cursorFactory.getContentUri()
             )
         }

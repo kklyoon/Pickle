@@ -79,10 +79,7 @@ class InstaViewModel(application: Application) : AndroidViewModel(application)
 
         val mediaList = ArrayList<Media>()
         for(key in selectionManager.selectionList.keys){
-            items.value?.forEach{ pickleItem ->
-                if( pickleItem != null && pickleItem.getId() == key)
-                    mediaList.add(pickleItem.media)
-            }
+            mediaList.add(key.media)
         }
 
         return PickleResult(mediaList)
