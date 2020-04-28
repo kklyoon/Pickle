@@ -22,10 +22,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import life.sabujak.pickle.Config
 import life.sabujak.pickle.R
 import life.sabujak.pickle.data.entity.PickleItem
 import life.sabujak.pickle.databinding.FragmentInstaBinding
+import life.sabujak.pickle.ui.dialog.Config
+import life.sabujak.pickle.ui.insta.internal.CropDataListener
 import life.sabujak.pickle.util.Logger
 import life.sabujak.pickle.util.ext.showToast
 
@@ -163,7 +164,7 @@ class InstaFragment constructor() : Fragment(), OnInstaEventListener {
                             binding.ivPreview.crop()
                         }
                     } else {
-                        config.onResultListener.onSuccess(instaViewModel.getPickleResult())
+                        config.onResultListener?.onSuccess(instaViewModel.getPickleResult())
                         it.supportFragmentManager.popBackStack()
                     }
                 }
