@@ -8,19 +8,22 @@ import life.sabujak.pickle.ui.dialog.PickleDialogFragment
 import life.sabujak.pickle.ui.insta.InstaConfig
 import life.sabujak.pickle.ui.insta.InstaFragment
 
-object Pickle {
+class Pickle {
+    companion object{
+    @JvmStatic
     fun start(fragmentManager: FragmentManager, listener: OnResultListener) {
         PickleDialogFragment(Config.Builder(listener).build()).show(
             fragmentManager,
             PickleDialogFragment::class.simpleName
         )
     }
-
-
+    @JvmStatic
     fun startInsta(fragmentManager: FragmentManager, containerId: Int, listener: OnResultListener) {
         fragmentManager.beginTransaction()
             .add(containerId, InstaFragment(InstaConfig.Builder(listener).build()), "Insta")
             .addToBackStack(null)
             .commit()
+        }
     }
+
 }
