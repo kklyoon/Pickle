@@ -12,4 +12,4 @@ class Image(
     mimeType: String,
     orientation: Int
 
-) : Media(id, uri, bucketId, dateAdded, fileSize, mediaType, mimeType)
+) : Media(id, uri, bucketId, dateAdded, fileSize, mediaType, mimeType, orientation)
