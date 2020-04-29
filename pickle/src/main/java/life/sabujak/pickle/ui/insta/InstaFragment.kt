@@ -42,13 +42,13 @@ class InstaFragment constructor() : Fragment(), OnInstaEventListener {
     private val gridLayoutManager by lazy {
         GridLayoutManager(context, 3)
     }
-    private lateinit var config: Config
+    private lateinit var config: InstaConfig
 
     private val parentJob = Job()
     private val coroutineScope =
         CoroutineScope(Dispatchers.Main + parentJob)
 
-    constructor(config: Config) : this() {
+    constructor(config: InstaConfig) : this() {
         this.config = config
     }
 
@@ -128,9 +128,11 @@ class InstaFragment constructor() : Fragment(), OnInstaEventListener {
         super.onViewCreated(view, savedInstanceState)
         instaViewModel.items.observe(viewLifecycleOwner, Observer { pagedList ->
             logger.d("submitList to Adapter")
-            instaAdapter.submitList(pagedList, Runnable {
-                pagedList?.let {
-                    if (it.size != 0) onItemClick(null, it[0]!!)
+            instaAdapter.submitList(pagedList, object : Runnable {
+                override fun run() {
+                    pagedList?.let {
+                        if (it.size != 0) onItemClick(null, it[0]!!)
+                    }
                 }
             })
         })

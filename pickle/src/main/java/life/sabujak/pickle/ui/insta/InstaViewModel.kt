@@ -25,7 +25,7 @@ class InstaViewModel(application: Application) : AndroidViewModel(application)
     private val _isMultipleSelect = MutableLiveData<Boolean>(false)
     var isMultipleSelect: LiveData<Boolean> = _isMultipleSelect
     lateinit var selectedItem: PickleItem
-    var config: Config? = null
+    var config: InstaConfig? = null
 
     val selectionManager = InstaSelectionManager()
 
