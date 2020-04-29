@@ -12,7 +12,7 @@ import java.security.MessageDigest
 class CropTransformation(private val cropData: CropData): BitmapTransformation(){
     val logger = Logger.getLogger(this::class.java.simpleName)
 
-    private val ID = "life.sabujak.pickle.ui.insta.internal"
+    private val ID = this::class.java.simpleName
     private val ID_BYTES = ID.toByteArray(Charset.forName("UTF-8"))
 
     override fun transform(
@@ -47,16 +47,9 @@ class CropTransformation(private val cropData: CropData): BitmapTransformation()
         val width = widthPercent * bitmapWidth
         val height = heightPercent * bitmapHeight
 
-        val matrix = Matrix()
-        val orientation = cropData.orientation
-        matrix.postRotate(orientation.toFloat())
-
-
         logger.d("createBitmap ${left}, ${top}, ${width}, ${height}")
-        if(orientation == 0)
-            return Bitmap.createBitmap(toTransform, left.toInt(), top.toInt(), width.toInt(), height.toInt())
-        else
-            return Bitmap.createBitmap(toTransform, left.toInt(), top.toInt(), width.toInt(), height.toInt(), matrix, true)
+
+        return Bitmap.createBitmap(toTransform, left.toInt(), top.toInt(), width.toInt(), height.toInt())
     }
 
     override fun updateDiskCacheKey(messageDigest: MessageDigest) {

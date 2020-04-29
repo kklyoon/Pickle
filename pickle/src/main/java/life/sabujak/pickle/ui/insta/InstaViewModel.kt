@@ -48,14 +48,7 @@ class InstaViewModel(application: Application) : AndroidViewModel(application)
         }
         else {
             _isAspectRatio.postValue(true)
-            selectionManager.setAspectRatio()
         }
-    }
-
-    fun setAspectRatio( setValue : Boolean){
-        logger.d("setAspectRatio: ${setValue}")
-        if(setValue) selectionManager.setAspectRatio()
-        _isAspectRatio.postValue(setValue)
     }
 
     fun setSelected(selected: PickleItem){

@@ -1,6 +1,7 @@
 package life.sabujak.pickle.ui.insta
 
 import androidx.databinding.BaseObservable
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import life.sabujak.pickle.data.entity.PickleItem
 import life.sabujak.pickle.ui.insta.internal.CropData
@@ -13,62 +14,33 @@ class InstaSelectionManager : BaseObservable() {
 
     val count = MutableLiveData(0)
 
-    val isMultiSelect = MutableLiveData<Boolean>(false)
-    val isCrop = MutableLiveData<Boolean>(false)
-
+    private val _isMultiSelect = MutableLiveData<Boolean>(false)
+    val isMultiSelect: LiveData<Boolean> = _isMultiSelect
 
     fun setMultipleSelect(isMultiple: Boolean) {
         logger.d("setMultipleSelect ${isMultiple}")
-        isMultiSelect.postValue(isMultiple)
-        lastSelected?.let {setChecked(it, isMultiple)}
+        _isMultiSelect.postValue(isMultiple)
     }
 
-    fun isChecked(pickleItem: PickleItem): Boolean{
-        return lastSelected == pickleItem
+    fun isChecked(pickleItem: PickleItem): Boolean {
+        if(isMultiSelect.value == true)
+            return selectionList.containsKey(pickleItem)
+        else
+            return lastSelected == pickleItem
     }
 
-    private fun isMultiSelect() =  isMultiSelect.value
-
-    private fun isCropSelect() =  isCrop.value
-
-
-    private fun setChecked(pickleItem: PickleItem, checked: Boolean) {
-        if (checked) {
-            selectionList[pickleItem] = null
-        } else {
-            selectionList.remove(pickleItem)
+    fun itemClick(pickleItem: PickleItem, cropData: CropData) {
+        if(isMultiSelect.value == false) {
+            selectionList.remove(lastSelected)
         }
-
-        updateCount()
-        notifyChange()
-    }
-
-    private fun setChecked(pickleItem: PickleItem, checked: Boolean, cropData: CropData) {
-        if (checked) {
-            selectionList[pickleItem] = cropData
-        } else {
-            selectionList.remove(pickleItem)
-        }
-
-        updateCount()
-        notifyChange()
-    }
-
-    fun itemClick(pickleItem: PickleItem, cropData: CropData?) {
-        if (isMultiSelect() == true && isCropSelect() == true) {
-            cropData?.let {
-                setChecked(pickleItem, !isChecked(pickleItem), it)
-            }
-        } else {
-            setChecked(pickleItem, !isChecked(pickleItem))
-        }
-        if (lastSelected == pickleItem) return
+        selectionList[pickleItem] = cropData
         lastSelected = pickleItem
+        updateCount()
         notifyChange()
     }
 
-    fun updateCropData(pickleItem: PickleItem, cropData: CropData?){
-        cropData?.let{
+    fun updateCropData(pickleItem: PickleItem, cropData: CropData?) {
+        cropData?.let {
             selectionList.put(pickleItem, cropData)
         }
         logger.d("$cropData")
@@ -97,18 +69,22 @@ class InstaSelectionManager : BaseObservable() {
         }
     }
 
+    fun toggleIndex(pickleItem: PickleItem){
+        if(selectionList.containsKey(pickleItem)) {
+            selectionList.remove(pickleItem)
+            updateCount()
+            notifyChange()
+        }
+    }
+
     fun clear() {
         selectionList.clear()
         updateCount()
         notifyChange()
     }
 
-    fun setAspectRatio(){
-        for(key in selectionList.keys){
-            selectionList[key] = null
-        }
-    }
+    fun getCropData(id: PickleItem) = selectionList[id]
 
-    fun hasCropData(id: PickleItem) = selectionList[id] != null
+    fun isLast(id:PickleItem) = lastSelected == id
 
 }

@@ -97,7 +97,7 @@ class InstaFragment constructor() : Fragment(), OnInstaEventListener {
             ivPreview.setSelectionManager(instaViewModel.selectionManager)
             ivPreview.addOnCropListener(object : OnCropListener {
                 override fun onSuccess(bitmap: Bitmap) {
-                    logger.d("Bitmap ID : ${bitmap.generationId}")
+                    logger.d("Bitmap size : ${bitmap.width} , ${bitmap.height}")
                     val dialogLayout =
                         layoutInflater.inflate(R.layout.dialog_result, container, false)
                     var dialogImageView = dialogLayout.findViewById<ImageView>(R.id.iv_image)
@@ -138,21 +138,18 @@ class InstaFragment constructor() : Fragment(), OnInstaEventListener {
         })
         instaViewModel.isAspectRatio.observe(viewLifecycleOwner, Observer {
             if (!binding.ivPreview.isEmpty()) {
-                if (it) binding.ivPreview.setAspectRatio() else binding.ivPreview.setCropScale()
+                if (it) {
+                    binding.ivPreview.setAspectRatio()
+                } else binding.ivPreview.setCropScale()
             }
         })
         instaViewModel.isMultipleSelect.observe(viewLifecycleOwner, Observer { it ->
             if (it && !binding.ivPreview.isEmpty()) {
-                binding.ivPreview.getCropData()?.let { data ->
-                    instaViewModel.selectionManager.setMultiCropData(cropData = data)
-                }
+                val cropData  = binding.ivPreview.getCropData()
+                instaViewModel.selectionManager.setMultiCropData(cropData = cropData)
             }
-            // #99 delete later
-            if (it) binding.ivRatio.visibility = INVISIBLE
-            else binding.ivRatio.visibility = VISIBLE
-            instaViewModel.setAspectRatio(it)
-
             instaTopViewModel.setCountable(it)
+            binding.recyclerView.adapter?.notifyDataSetChanged()
         })
 
         instaTopViewModel.clickEvent.observe(viewLifecycleOwner, Observer {
@@ -196,6 +193,8 @@ class InstaFragment constructor() : Fragment(), OnInstaEventListener {
     }
 
     override fun onItemClick(view: View?, item: PickleItem) {
+        if(instaViewModel.selectionManager.isLast(item)) return
+        loadPickleMedia(item)
         instaViewModel.setSelected(item)
         instaViewModel.selectionManager.itemClick(
             item,
@@ -206,7 +205,6 @@ class InstaFragment constructor() : Fragment(), OnInstaEventListener {
             binding.ivPreview.clear()
             return
         }
-        loadPickleMedia(item)
         view?.let {
             binding.recyclerView.smoothScrollBy(0, it.top)
             binding.previewAppbarLayout.setExpanded(true)

@@ -3,6 +3,7 @@ package life.sabujak.pickle.data.cursor
 import android.content.ContentUris
 import android.content.Context
 import android.database.Cursor
+import android.media.MediaDataSource
 import android.net.Uri
 import android.provider.MediaStore
 import life.sabujak.pickle.data.entity.Image
