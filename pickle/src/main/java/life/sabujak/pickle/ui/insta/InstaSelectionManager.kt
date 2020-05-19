@@ -20,6 +20,8 @@ class InstaSelectionManager : BaseObservable() {
     fun setMultipleSelect(isMultiple: Boolean) {
         logger.d("setMultipleSelect ${isMultiple}")
         _isMultiSelect.postValue(isMultiple)
+        updateCount()
+        notifyChange()
     }
 
     fun isChecked(pickleItem: PickleItem): Boolean {
@@ -29,11 +31,15 @@ class InstaSelectionManager : BaseObservable() {
             return lastSelected == pickleItem
     }
 
-    fun itemClick(pickleItem: PickleItem, cropData: CropData) {
+    fun isClicked(pickleItem: PickleItem) = lastSelected == pickleItem
+
+    fun itemClick(pickleItem: PickleItem){
         if(isMultiSelect.value == false) {
             selectionList.remove(lastSelected)
         }
-        selectionList[pickleItem] = cropData
+        if(!selectionList.containsKey(pickleItem))
+            selectionList[pickleItem] = null
+
         lastSelected = pickleItem
         updateCount()
         notifyChange()
@@ -43,7 +49,7 @@ class InstaSelectionManager : BaseObservable() {
         cropData?.let {
             selectionList.put(pickleItem, cropData)
         }
-        logger.d("$cropData")
+        logger.d("ItemID: ${pickleItem.getId()} listsize :${selectionList.size}, $cropData")
     }
 
     private fun updateCount() {
@@ -81,6 +87,12 @@ class InstaSelectionManager : BaseObservable() {
         selectionList.clear()
         updateCount()
         notifyChange()
+    }
+
+    fun clearCropData(){
+        for(key in selectionList.keys){
+            selectionList[key] = null
+        }
     }
 
     fun getCropData(id: PickleItem) = selectionList[id]

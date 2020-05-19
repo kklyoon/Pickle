@@ -27,14 +27,6 @@ internal interface ActionListener {
   fun onMoved(dx: Float, dy: Float)
 
   /**
-   * Called when fling action is detected
-   *
-   * @param velocityX horizontal velocity when flinged
-   * @param velocityY vertical velocity when flinged
-   */
-  fun onFlinged(velocityX: Float, velocityY: Float)
-
-  /**
    * Called when moving action ends
    */
   fun onMoveEnded()

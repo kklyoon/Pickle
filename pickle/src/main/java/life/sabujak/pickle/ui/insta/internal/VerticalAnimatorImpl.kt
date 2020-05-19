@@ -1,18 +1,16 @@
 package life.sabujak.pickle.ui.insta.internal
 
+import android.animation.Animator
 import android.animation.ObjectAnimator
 import android.graphics.Rect
 import android.view.View
 import android.view.View.TRANSLATION_Y
 import androidx.annotation.VisibleForTesting
 import androidx.dynamicanimation.animation.DynamicAnimation
-import androidx.dynamicanimation.animation.DynamicAnimation.OnAnimationUpdateListener
-import androidx.dynamicanimation.animation.FlingAnimation
 import androidx.dynamicanimation.animation.FloatPropertyCompat
 import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.dynamicanimation.animation.SpringForce
 import life.sabujak.pickle.ui.insta.internal.MoveAnimator.Companion.DAMPING_RATIO
-import life.sabujak.pickle.ui.insta.internal.MoveAnimator.Companion.FRICTION
 import life.sabujak.pickle.ui.insta.internal.MoveAnimator.Companion.STIFFNESS
 
 /**
@@ -24,9 +22,9 @@ internal class VerticalAnimatorImpl @VisibleForTesting constructor(
     private val bottomBound: Float,
     private val maxScale: Float,
     private val spring: SpringAnimation,
-    private val fling: FlingAnimation,
     private val animator: ObjectAnimator,
-    private val aniEndListener: CropDataListener
+    private val springEndListener: DynamicAnimation.OnAnimationEndListener,
+    private val moveEndListener: Animator.AnimatorListener
 ) : MoveAnimator {
 
     constructor(
@@ -34,7 +32,8 @@ internal class VerticalAnimatorImpl @VisibleForTesting constructor(
         topBound: Float,
         bottomBound: Float,
         maxScale: Float,
-        aniEndListener: CropDataListener
+        springEndListener: DynamicAnimation.OnAnimationEndListener,
+        moveEndListener: Animator.AnimatorListener
     ) : this(
         targetView = targetView,
         topBound = topBound,
@@ -44,24 +43,15 @@ internal class VerticalAnimatorImpl @VisibleForTesting constructor(
             targetView,
             HORIZONTAL_PROPERTY
         ).setSpring(SPRING_FORCE),
-        fling = FlingAnimation(targetView, DynamicAnimation.Y).setFriction(FRICTION),
         animator = ANIMATOR,
-        aniEndListener = aniEndListener
+        springEndListener = springEndListener,
+        moveEndListener = moveEndListener
     )
-
-    private val updateListener = OnAnimationUpdateListener { _, _, velocity ->
-        val expectedRect = expectRect()
-        if (outOfBounds(expectedRect)) {
-            adjustToBounds(expectedRect, velocity)
-        }
-    }
-
-    private val endListener = DynamicAnimation.OnAnimationEndListener { _, _, _, _ ->
-        aniEndListener.onMoveEnd()
-    }
 
     init {
         animator.target = targetView
+        animator.addListener(moveEndListener)
+        spring.addEndListener(springEndListener)
     }
 
     override fun move(delta: Float) {
@@ -75,13 +65,6 @@ internal class VerticalAnimatorImpl @VisibleForTesting constructor(
         if (outOfBounds(expectedRect)) {
             adjustToBounds(expectedRect)
         }
-    }
-
-    override fun fling(velocity: Float) {
-        cancel()
-        fling.addUpdateListener(updateListener)
-        fling.setStartVelocity(velocity).start()
-        fling.addEndListener(endListener)
     }
 
     private fun expectRect(): Rect {
@@ -134,14 +117,11 @@ internal class VerticalAnimatorImpl @VisibleForTesting constructor(
             val finalPosition = bottomBound - targetView.height.toFloat() - diff
             spring.setStartVelocity(velocity).animateToFinalPosition(finalPosition)
         }
-        spring.addEndListener(endListener)
     }
 
     override fun cancel() {
         animator.cancel()
         spring.cancel()
-        fling.cancel()
-        fling.removeUpdateListener(updateListener)
     }
 
     companion object {

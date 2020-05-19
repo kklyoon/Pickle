@@ -36,12 +36,6 @@ internal class GestureAnimation(
 
         override fun onLongPress(e: MotionEvent) = Unit
 
-        override fun onFling(
-            e1: MotionEvent, e2: MotionEvent, velocityX: Float, velocityY: Float
-        ): Boolean {
-            actionListener.onFlinged(velocityX, velocityY)
-            return true
-        }
     }
 
     private val scaleListener = object : ScaleGestureDetector.SimpleOnScaleGestureListener() {

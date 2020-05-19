@@ -43,6 +43,7 @@ class InstaViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun ratioClicked() {
+        selectionManager.clearCropData()
         if (_isAspectRatio.value == true) {
             _isAspectRatio.postValue(false)
         }

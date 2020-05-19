@@ -7,6 +7,7 @@ import android.view.View.SCALE_X
 import android.view.View.SCALE_Y
 import android.view.animation.DecelerateInterpolator
 import androidx.annotation.VisibleForTesting
+import androidx.dynamicanimation.animation.DynamicAnimation
 import life.sabujak.pickle.ui.insta.internal.ScaleAnimator.Companion.ADJUSTING_DURATION
 import life.sabujak.pickle.ui.insta.internal.ScaleAnimator.Companion.ADJUSTING_FACTOR
 import life.sabujak.pickle.ui.insta.internal.ScaleAnimator.Companion.ORIGINAL_SCALE
@@ -19,34 +20,26 @@ internal class ScaleAnimatorImpl @VisibleForTesting constructor(
     private val maxScale: Float,
     private val animatorX: ObjectAnimator,
     private val animatorY: ObjectAnimator,
-    private val aniEndListener: CropDataListener
+    private val scaleEndListener: Animator.AnimatorListener
 ) : ScaleAnimator {
 
     constructor(
         targetView: View,
         maxScale: Float,
-        aniEndListener: CropDataListener
+        scaleEndListener: Animator.AnimatorListener
     ) : this(
         targetView = targetView,
         maxScale = maxScale,
         animatorX = ANIMATOR_X,
         animatorY = ANIMATOR_Y,
-        aniEndListener = aniEndListener
+        scaleEndListener = scaleEndListener
     )
-  private val endListener = object : Animator.AnimatorListener{
-    override fun onAnimationEnd(animation: Animator?) {
-      aniEndListener.onMoveEnd()
-    }
-    override fun onAnimationCancel(animation: Animator?) {}
-    override fun onAnimationRepeat(animation: Animator?) {}
-    override fun onAnimationStart(animation: Animator?) {}
-  }
 
     init {
-      animatorX.target = targetView
-      animatorY.target = targetView
-      animatorX.addListener(endListener)
-      animatorY.addListener(endListener)
+        animatorX.target = targetView
+        animatorY.target = targetView
+        animatorX.addListener(scaleEndListener)
+        animatorY.addListener(scaleEndListener)
     }
 
     override fun scale(scale: Float) {

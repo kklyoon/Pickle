@@ -5,7 +5,6 @@ import android.graphics.Bitmap
 import android.os.Bundle
 import android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE
 import android.view.*
-import android.view.View.INVISIBLE
 import android.view.View.VISIBLE
 import android.widget.ImageView
 import androidx.appcompat.app.AlertDialog
@@ -25,8 +24,7 @@ import kotlinx.coroutines.launch
 import life.sabujak.pickle.R
 import life.sabujak.pickle.data.entity.PickleItem
 import life.sabujak.pickle.databinding.FragmentInstaBinding
-import life.sabujak.pickle.ui.dialog.Config
-import life.sabujak.pickle.ui.insta.internal.CropDataListener
+import life.sabujak.pickle.ui.common.OnBitmapResultListener
 import life.sabujak.pickle.util.Logger
 import life.sabujak.pickle.util.ext.showToast
 
@@ -47,9 +45,14 @@ class InstaFragment constructor() : Fragment(), OnInstaEventListener {
     private val parentJob = Job()
     private val coroutineScope =
         CoroutineScope(Dispatchers.Main + parentJob)
+    private lateinit var bitmapResultListener: OnBitmapResultListener
 
     constructor(config: InstaConfig) : this() {
         this.config = config
+    }
+
+    constructor(bitmapResultListener: OnBitmapResultListener): this(){
+        this.bitmapResultListener = bitmapResultListener
     }
 
     override fun onAttach(context: Context) {
@@ -66,7 +69,7 @@ class InstaFragment constructor() : Fragment(), OnInstaEventListener {
         if (savedInstanceState == null) {
             instaViewModel.config = this.config
         } else {
-            this.config = instaViewModel.config!!
+            this.config = instaViewModel.config!!           // #99 crash error
         }
         logger.d("onCreate")
     }
@@ -108,6 +111,7 @@ class InstaFragment constructor() : Fragment(), OnInstaEventListener {
                         val alertDialog = AlertDialog.Builder(it)
                         alertDialog.setOnDismissListener {
                             logger.d("release bitmap")
+                            bitmap.recycle()
                             dialogImageView.setImageDrawable(null)
                             dialogImageView = null
                         }
@@ -144,7 +148,7 @@ class InstaFragment constructor() : Fragment(), OnInstaEventListener {
             }
         })
         instaViewModel.isMultipleSelect.observe(viewLifecycleOwner, Observer { it ->
-            if (it && !binding.ivPreview.isEmpty()) {
+            if (it && instaViewModel.isAspectRatio.value == false) {
                 val cropData  = binding.ivPreview.getCropData()
                 instaViewModel.selectionManager.setMultiCropData(cropData = cropData)
             }
@@ -184,22 +188,15 @@ class InstaFragment constructor() : Fragment(), OnInstaEventListener {
 
     private fun loadPickleMedia(item: PickleItem) {
         if (item.media.mediaType == MEDIA_TYPE_IMAGE) {
-            binding.ivPreview.setPickleMedia(item)
-            if (!binding.ivPreview.isEmpty()) {
-                if (instaViewModel.isAspectRatio.value == true) binding.ivPreview.setAspectRatio() else binding.ivPreview.setCropScale()
-            }
+            binding.ivPreview.setPickleMedia(item, instaViewModel.isAspectRatio.value)
         }
-//        TODO("VIDEO 에 대한 처리")
     }
 
     override fun onItemClick(view: View?, item: PickleItem) {
         if(instaViewModel.selectionManager.isLast(item)) return
         loadPickleMedia(item)
         instaViewModel.setSelected(item)
-        instaViewModel.selectionManager.itemClick(
-            item,
-            binding.ivPreview.getCropData()
-        )
+        instaViewModel.selectionManager.itemClick(item)
         if (instaViewModel.selectedItem.media.mediaType != MEDIA_TYPE_IMAGE) {
             showToast("video is not supported now")
             binding.ivPreview.clear()

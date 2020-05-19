@@ -1,5 +1,6 @@
 package life.sabujak.pickle.ui.insta
 
+import android.animation.Animator
 import android.content.Context
 import android.graphics.*
 import android.graphics.drawable.Drawable
@@ -15,6 +16,7 @@ import android.view.ViewTreeObserver
 import android.widget.FrameLayout
 import android.widget.ImageView
 import androidx.core.graphics.drawable.toBitmap
+import androidx.dynamicanimation.animation.DynamicAnimation
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.MultiTransformation
@@ -43,7 +45,7 @@ class CropLayout @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
-) : FrameLayout(context, attrs, defStyleAttr) {
+) : FrameLayout(context, attrs, defStyleAttr), DynamicAnimation.OnAnimationEndListener, Animator.AnimatorListener {
     val logger = Logger.getLogger(this::class.java.simpleName)
     private lateinit var frame: RectF
     private var scale = DEFAULT_MAX_SCALE
@@ -62,12 +64,9 @@ class CropLayout @JvmOverloads constructor(
     private lateinit var frameCache: RectF
     private val listeners = CopyOnWriteArrayList<OnCropListener>()
 
-    private var cropDataListener: CropDataListener
-
     private lateinit var selectionManager: InstaSelectionManager
 
     init {
-        logger.d("init")
         val attr = context.obtainStyledAttributes(attrs, R.styleable.CropLayout, 0, 0)
         cropImageView = CropImageView(context, null, 0)
         cropOverlay.layoutParams = LayoutParams(MATCH_PARENT, MATCH_PARENT, Gravity.CENTER)
@@ -112,7 +111,6 @@ class CropLayout @JvmOverloads constructor(
                 cropOverlay.setFrame(frame)
                 cropOverlay.requestLayout()
                 frameCache = frame
-                setCropScale()
 
                 when {
                     vto.isAlive -> vto.removeOnPreDrawListener(this)
@@ -121,16 +119,6 @@ class CropLayout @JvmOverloads constructor(
                 return true
             }
         })
-        cropDataListener = object : CropDataListener {
-            override fun onMoveEnd() {
-                val cropData = getCropData()
-                val selectedMedia = selectItem
-                logger.d("onMoveEnd() ${cropData}")
-                selectedMedia?.let {
-                    selectionManager?.updateCropData(it, cropData)
-                }
-            }
-        }
     }
 
     fun addOnCropListener(listener: OnCropListener) {
@@ -143,9 +131,9 @@ class CropLayout @JvmOverloads constructor(
 
     suspend fun crop() {
         val cropData = getCropData()
-        if (selectionManager?.isMultiSelect?.value == true)
+        if (selectionManager.isMultiSelect.value == true)
             getBitmapFromUri(selectItem!!.mediaUri)?.let { bitmap ->
-                glideTransForm(bitmap, cropData)
+                multiTransForm(bitmap, cropData)
             } else {
             val source = cropImageView.drawable.toBitmap()
             try {
@@ -174,6 +162,12 @@ class CropLayout @JvmOverloads constructor(
 
     fun getCropData(): CropData {
         val targetRect = Rect().apply { cropImageView.getHitRect(this) }
+        val imageViewRect = Rect().apply {
+            this.left = cropImageView.left
+            this.top = cropImageView.top
+            this.right = cropImageView.right
+            this.bottom = cropImageView.bottom
+        }
         val leftOffset = (frameCache.left - targetRect.left).toInt()
         val topOffset = (frameCache.top - targetRect.top).toInt()
         val width = frameCache.width().toInt()
@@ -181,6 +175,10 @@ class CropLayout @JvmOverloads constructor(
         val orientation = selectItem?.media?.orientation
         val scaleX = cropImageView.scaleX
         val scaleY = cropImageView.scaleY
+        val translationX = cropImageView.x - cropImageView.left
+        val translationY = cropImageView.y - cropImageView.top
+//        imageViewLog("getCropData")
+//        targetViewLog("getCropData")
         orientation?.let {
             return CropData(
                 leftOffset,
@@ -191,7 +189,10 @@ class CropLayout @JvmOverloads constructor(
                 targetRect.height(),
                 it,
                 scaleX,
-                scaleY
+                scaleY,
+                translationX,
+                translationY,
+                imageViewRect
             )
         }
         return CropData(
@@ -202,45 +203,43 @@ class CropLayout @JvmOverloads constructor(
             targetRect.width(),
             targetRect.height(),
             scaleX = scaleX,
-            scaleY = scaleY
+            scaleY = scaleY,
+            translationX = translationX,
+            translationY = translationY,
+            imageRect = imageViewRect
         )
     }
 
-
     fun setCropScale() {
+//        val cropInfoListener = CropImageLayoutChangeListener(selectItem)
         cropOverlay.visibility = View.VISIBLE
-        cropImageView.scaleX = 1f
-        cropImageView.scaleY = 1f
-        cropImageView.top = top
-        cropImageView.left = left
-        cropImageView.x = left.toFloat()
-        cropImageView.y = top.toFloat()
-        selectionManager?.let { selectionManager ->
-            selectItem?.let { item ->
-                val cropData = selectionManager.getCropData(item)
-                cropData?.let { data ->
-                    cropImageView.scaleX = data.scaleX
-                    cropImageView.scaleY = data.scaleY
-                    cropImageView.top = (frameCache.left - data.resultX).toInt()
-                    cropImageView.left = (frameCache.top - data.resultY).toInt()
-//                    cropImageView.x = frameCache.left - data.resultX
-//                    cropImageView.y = frameCache.top - data.resultY
-                }
-            }
-        }
+        cropImageView.layoutParams = LayoutParams(WRAP_CONTENT, WRAP_CONTENT, Gravity.CENTER)
         cropImageView.scaleType = ImageView.ScaleType.CENTER_CROP
         cropImageView.adjustViewBounds = true
-        cropImageView.layoutParams = LayoutParams(WRAP_CONTENT, WRAP_CONTENT, Gravity.CENTER)
+
+        selectItem?.let { it ->
+            val cropData = selectionManager.getCropData(it)
+            cropData?.let { data ->
+                cropImageView.setCropData(data)
+            }?: run {
+                val rect = Rect(left, top, right, bottom)
+                val data = CropData(imageRect = rect)
+                cropImageView.setCropData(data)
+            }
+        }
         cropImageView.requestLayout()
-        animator = GestureAnimator.of(cropImageView, frame, scale, cropDataListener)
+
+        animator = GestureAnimator.of(cropImageView, frame, scale, this, this)
         animation = GestureAnimation(cropOverlay, animator)
         animation.start()
-        val position = IntArray(2).apply { cropImageView.getLocationOnScreen(this) }
-        logger.d(
-            "setCropScale() : cropImageView ${cropImageView.left}, ${cropImageView.top}, ${cropImageView.right}, ${cropImageView.bottom}, ${cropImageView.x}, ${cropImageView.y}" +
-                    " scaleX : ${cropImageView.scaleX} "
-        )
-        logger.d("setCropScale() : cropImageView realposition ${position[0]}, ${position[1]}")
+//        imageViewLog("setCropScale")
+//        targetViewLog("setCropScale")
+//        val position = IntArray(2).apply { cropImageView.getLocationOnScreen(this) }
+//        logger.d(
+//            "Item : ${selectItem?.getId()} setCropScale() : cropImageView ${cropImageView.left}, ${cropImageView.top}, ${cropImageView.right}, ${cropImageView.bottom}, ${cropImageView.x}, ${cropImageView.y}" +
+//                    " scaleX : ${cropImageView.scaleX} "
+//        )
+//        logger.d("setCropScale() : cropImageView realposition ${position[0]}, ${position[1]}")
     }
 
     fun setAspectRatio() {
@@ -248,7 +247,7 @@ class CropLayout @JvmOverloads constructor(
         removeCropListener()
         cropOverlay.visibility = View.GONE
         cropImageView.layoutParams = LayoutParams(MATCH_PARENT, MATCH_PARENT, Gravity.CENTER)
-        cropImageView.scaleType = ImageView.ScaleType.FIT_CENTER
+        cropImageView.scaleType = ImageView.ScaleType.CENTER_INSIDE
         cropImageView.top = top
         cropImageView.left = left
         cropImageView.right = right
@@ -271,17 +270,18 @@ class CropLayout @JvmOverloads constructor(
         return true
     }
 
-    fun setPickleMedia(item: PickleItem) {
+    fun setPickleMedia(item: PickleItem, isAspectRatio: Boolean?) {
         this.selectItem = item
         Glide.with(this.context).load(this.selectItem?.mediaUri)
-            .transition(DrawableTransitionOptions.withCrossFade()).into(cropImageView)
+            .transition(DrawableTransitionOptions.withCrossFade())
+            .listener(CropLayoutRequestListener(isAspectRatio)).into(cropImageView)
     }
 
     fun setSelectionManager(selectionManager: InstaSelectionManager) {
         this.selectionManager = selectionManager
     }
 
-    suspend fun getBitmapFromUri(uri: Uri): Bitmap? = withContext(Dispatchers.IO) {
+    private suspend fun getBitmapFromUri(uri: Uri): Bitmap? = withContext(Dispatchers.IO) {
         if (Build.VERSION.SDK_INT < 29) {
             return@withContext MediaStore.Images.Media.getBitmap(
                 context.contentResolver,
@@ -294,7 +294,7 @@ class CropLayout @JvmOverloads constructor(
         }
     }
 
-    suspend fun glideTransForm(bitmap: Bitmap, cropData: CropData) =
+    private suspend fun multiTransForm(bitmap: Bitmap, cropData: CropData) =
         withContext(Dispatchers.Default) {
             logger.d("glideTransFrom $cropData")
             try {
@@ -327,6 +327,32 @@ class CropLayout @JvmOverloads constructor(
         cropImageView.setImageResource(android.R.color.transparent)
     }
 
+    private fun saveCropData(){
+        val cropData = getCropData()
+        val selectedMedia = selectItem
+//        logger.d("saveCropData() ${cropData}")
+        selectedMedia?.let {
+            selectionManager.updateCropData(it, cropData)
+        }
+    }
+
+    override fun onAnimationEnd(animation: Animator?) {
+        saveCropData()
+    }
+
+    override fun onAnimationEnd(
+        animation: DynamicAnimation<out DynamicAnimation<*>>?,
+        canceled: Boolean,
+        value: Float,
+        velocity: Float
+    ) {
+        saveCropData()
+    }
+
+    override fun onAnimationCancel(animation: Animator?) {}
+    override fun onAnimationRepeat(animation: Animator?) {}
+    override fun onAnimationStart(animation: Animator?) {}
+
     companion object {
         private const val DEFAULT_MAX_SCALE = 2f
 
@@ -335,5 +361,61 @@ class CropLayout @JvmOverloads constructor(
 
         private const val DEFAULT_PERCENT_WIDTH = 0.8f
         private const val DEFAULT_PERCENT_HEIGHT = 0.8f
+    }
+
+    inner class CropLayoutRequestListener(val isAspect: Boolean?) : RequestListener<Drawable> {
+        override fun onResourceReady(
+            resource: Drawable?,
+            model: Any?,
+            target: Target<Drawable>?,
+            dataSource: DataSource?,
+            isFirstResource: Boolean
+        ): Boolean {
+            isAspect?.let {
+                if (it) setAspectRatio()
+                else setCropScale()
+            }
+            return false
+        }
+
+        override fun onLoadFailed(
+            e: GlideException?,
+            model: Any?,
+            target: Target<Drawable>?,
+            isFirstResource: Boolean
+        ): Boolean {
+            logger.e("Image load Failed ${e.toString()}")
+            return false
+        }
+    }
+
+    // belows for debug
+    private fun imageViewLog(funName: String) {
+        logger.d(
+            "$funName : ID: ${selectItem?.getId()}, cropImageView ${cropImageView.left}, ${cropImageView.top}, ${cropImageView.right}, ${cropImageView.bottom}, (${cropImageView.x}, ${cropImageView.y})" +
+                    " ${cropImageView.width}, ${cropImageView.height} scaleX : ${cropImageView.scaleX} "
+        )
+    }
+
+    private fun targetViewLog(funName: String) {
+        val targetRect = Rect().apply { cropImageView.getHitRect(this) }        // move
+        logger.d("$funName : targetRect ${targetRect} ")
+    }
+
+    private fun drawableLog(dr: Drawable?) {
+        logger.d("Drawble width ${dr?.intrinsicWidth}, height ${dr?.intrinsicHeight}")
+    }
+
+    private fun cropdataLog(funName: String, cropData: CropData) {
+        logger.d("$funName : ${selectItem?.getId()} $cropData")
+    }
+
+    private fun getTranslation(funName: String) {
+        logger.d("$funName : ${cropImageView.translationX}, ${cropImageView.translationY}")
+    }
+
+    private fun realpositionLog(funName: String) {
+        val position = IntArray(2).apply { cropImageView.getLocationOnScreen(this) }
+        logger.d("$funName : cropImageView realposition ${position[0]}, ${position[1]}")
     }
 }

@@ -15,10 +15,12 @@ class InstaConfig private constructor(
     val title: CharSequence
 
 ) {
+    // MaxCount
+    // CropRatio
+    //
 
     class Builder (private var onResultListener: OnResultListener? = null) {
         private var cursorType: CursorType = CursorType.IMAGE
-        private var peekHeight: Int = BottomSheetBehavior.PEEK_HEIGHT_AUTO
         @ColorRes
         private var themeColorRes: Int = R.color.GR500
         private var title: CharSequence = "Select images"

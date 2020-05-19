@@ -21,13 +21,6 @@ internal interface MoveAnimator {
 
   fun cancel()
 
-  /**
-   * fling image
-   *
-   * @param velocity velocity when starting to fling
-   */
-  fun fling(velocity: Float)
-
   companion object {
 
     /**
@@ -40,9 +33,5 @@ internal interface MoveAnimator {
      */
     const val DAMPING_RATIO = SpringForce.DAMPING_RATIO_NO_BOUNCY
 
-    /**
-     * friction when flinging
-     */
-    const val FRICTION = 3f
   }
 }

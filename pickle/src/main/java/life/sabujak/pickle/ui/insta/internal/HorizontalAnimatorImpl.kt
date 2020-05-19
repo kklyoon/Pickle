@@ -1,5 +1,6 @@
 package life.sabujak.pickle.ui.insta.internal
 
+import android.animation.Animator
 import android.animation.ObjectAnimator
 import android.graphics.Rect
 import android.view.View
@@ -7,10 +8,9 @@ import android.view.View.TRANSLATION_X
 import androidx.annotation.VisibleForTesting
 import androidx.dynamicanimation.animation.*
 import androidx.dynamicanimation.animation.DynamicAnimation.OnAnimationEndListener
-import androidx.dynamicanimation.animation.DynamicAnimation.OnAnimationUpdateListener
 import life.sabujak.pickle.ui.insta.internal.MoveAnimator.Companion.DAMPING_RATIO
-import life.sabujak.pickle.ui.insta.internal.MoveAnimator.Companion.FRICTION
 import life.sabujak.pickle.ui.insta.internal.MoveAnimator.Companion.STIFFNESS
+import life.sabujak.pickle.util.Logger
 
 /**
  * HorizontalAnimatorImpl is responsible for animating [targetView] horizontally.
@@ -21,9 +21,9 @@ internal class HorizontalAnimatorImpl @VisibleForTesting constructor(
     private val rightBound: Float,
     private val maxScale: Float,
     private val spring: SpringAnimation,
-    private val fling: FlingAnimation,
     private val animator: ObjectAnimator,
-    private val aniEndListener: CropDataListener
+    private val springEndListener: OnAnimationEndListener,
+    private val moveEndListener: Animator.AnimatorListener
 ) : MoveAnimator {
 
     constructor(
@@ -31,7 +31,8 @@ internal class HorizontalAnimatorImpl @VisibleForTesting constructor(
         leftBound: Float,
         rightBound: Float,
         maxScale: Float,
-        aniEndListener: CropDataListener
+        springEndListener: OnAnimationEndListener,
+        moveEndListener: Animator.AnimatorListener
     ) : this(
         targetView = targetView,
         leftBound = leftBound,
@@ -41,24 +42,17 @@ internal class HorizontalAnimatorImpl @VisibleForTesting constructor(
             targetView,
             VERTICAL_PROPERTY
         ).setSpring(SPRING_FORCE),
-        fling = FlingAnimation(targetView, DynamicAnimation.X).setFriction(FRICTION),
         animator = ANIMATOR,
-        aniEndListener = aniEndListener
+        springEndListener = springEndListener,
+        moveEndListener = moveEndListener
     )
 
-    private val updateListener = OnAnimationUpdateListener { _, _, velocity ->
-        val expectedRect = expectRect()
-        if (outOfBounds(expectedRect)) {
-            adjustToBounds(expectedRect, velocity)
-        }
-    }
-
-    private val endListener = OnAnimationEndListener{ _, _, _, _ ->
-        aniEndListener.onMoveEnd()
-    }
+    val logger = Logger.getLogger(this::class.java.simpleName)
 
     init {
         animator.target = targetView
+        animator.addListener(moveEndListener)
+        spring.addEndListener(springEndListener)
     }
 
     override fun move(delta: Float) {
@@ -72,13 +66,6 @@ internal class HorizontalAnimatorImpl @VisibleForTesting constructor(
         if (outOfBounds(expectedRect)) {
             adjustToBounds(expectedRect)
         }
-    }
-
-    override fun fling(velocity: Float) {
-        cancel()
-        fling.addUpdateListener(updateListener)
-        fling.setStartVelocity(velocity).start()
-        fling.addEndListener(endListener)
     }
 
     private fun expectRect(): Rect {
@@ -132,14 +119,11 @@ internal class HorizontalAnimatorImpl @VisibleForTesting constructor(
             val finalPosition = rightBound - targetView.width.toFloat() - diff
             spring.setStartVelocity(velocity).animateToFinalPosition(finalPosition)
         }
-        spring.addEndListener(endListener)
     }
 
     override fun cancel() {
         animator.cancel()
         spring.cancel()
-        fling.cancel()
-        fling.removeUpdateListener(updateListener)
     }
 
     companion object {
