@@ -6,10 +6,10 @@ import androidx.core.content.ContextCompat
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import life.sabujak.pickle.R
 import life.sabujak.pickle.data.cursor.CursorType
-import life.sabujak.pickle.ui.common.OnResultListener
+import life.sabujak.pickle.ui.insta.internal.OnInstaResultListener
 
 class InstaConfig private constructor(
-    val onResultListener: OnResultListener?,
+    val onResultListener: OnInstaResultListener?,
     val cursorType: CursorType,
     @ColorRes val themeColorRes: Int,
     val title: CharSequence
@@ -19,7 +19,7 @@ class InstaConfig private constructor(
     // CropRatio
     //
 
-    class Builder (private var onResultListener: OnResultListener? = null) {
+    class Builder (private var onResultListener: OnInstaResultListener? = null) {
         private var cursorType: CursorType = CursorType.IMAGE
         @ColorRes
         private var themeColorRes: Int = R.color.GR500

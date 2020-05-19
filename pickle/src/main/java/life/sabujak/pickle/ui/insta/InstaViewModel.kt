@@ -5,12 +5,12 @@ import androidx.lifecycle.*
 import androidx.paging.LivePagedListBuilder
 import androidx.paging.PagedList
 import life.sabujak.pickle.ui.dialog.Config
-import life.sabujak.pickle.data.cursor.CursorType
 import life.sabujak.pickle.data.cursor.ImageCursorFactory
 import life.sabujak.pickle.data.datasource.PickleDataSourceFactory
 import life.sabujak.pickle.data.entity.Media
 import life.sabujak.pickle.data.entity.PickleItem
-import life.sabujak.pickle.data.entity.PickleResult
+import life.sabujak.pickle.ui.dialog.PickleResult
+import life.sabujak.pickle.ui.insta.internal.InstaResult
 import life.sabujak.pickle.util.Logger
 import java.util.ArrayList
 
@@ -68,13 +68,13 @@ class InstaViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun getPickleResult(): PickleResult {
+    fun getPickleResult(): InstaResult {
 
         val mediaList = ArrayList<Media>()
         for(key in selectionManager.selectionList.keys){
             mediaList.add(key.media)
         }
 
-        return PickleResult(mediaList)
+        return InstaResult(mediaList)
     }
 }
