@@ -28,14 +28,14 @@ import life.sabujak.pickle.ui.common.OnBitmapResultListener
 import life.sabujak.pickle.util.Logger
 import life.sabujak.pickle.util.ext.showToast
 
-class InstaFragment constructor() : Fragment(), OnInstaEventListener {
+class InstaFragment constructor() : Fragment(){
     val logger = Logger.getLogger(this.javaClass.simpleName)
 
     lateinit var binding: FragmentInstaBinding
     private val instaViewModel: InstaViewModel by viewModels()
     private val instaTopViewModel: InstaTopViewModel by viewModels()
     private val instaAdapter by lazy {
-        InstaAdapter(lifecycle, instaViewModel.selectionManager, this)
+        InstaAdapter(lifecycle, instaViewModel.selectionManager, instaViewModel)
     }
     private val gridLayoutManager by lazy {
         GridLayoutManager(context, 3)
@@ -132,13 +132,12 @@ class InstaFragment constructor() : Fragment(), OnInstaEventListener {
         super.onViewCreated(view, savedInstanceState)
         instaViewModel.items.observe(viewLifecycleOwner, Observer { pagedList ->
             logger.d("submitList to Adapter")
-            instaAdapter.submitList(pagedList, object : Runnable {
-                override fun run() {
-                    pagedList?.let {
-                        if (it.size != 0) onItemClick(null, it[0]!!)
-                    }
+            instaAdapter.submitList(pagedList) {
+                pagedList?.let {
+                    if (it.size != 0) instaViewModel.itemClicked(0, it[0]!!)
+//                    if (it.size != 0) onItemClick(null, it[0]!!)
                 }
-            })
+            }
         })
         instaViewModel.isAspectRatio.observe(viewLifecycleOwner, Observer {
             if (!binding.ivPreview.isEmpty()) {
@@ -155,21 +154,26 @@ class InstaFragment constructor() : Fragment(), OnInstaEventListener {
             instaTopViewModel.setCountable(it)
             binding.recyclerView.adapter?.notifyDataSetChanged()
         })
+        instaViewModel.selectedItem.observe(viewLifecycleOwner, Observer {
+            loadPickleMedia(it)
+            instaViewModel.selectedPosition?.let{position ->
+                logger.d("scrollbyposition $position")
+                binding.recyclerView.findViewHolderForAdapterPosition(position)?.itemView?.let{itemView->
+                    binding.recyclerView.smoothScrollBy(0, itemView.top)
+                    binding.previewAppbarLayout.setExpanded(true)}
+                }
+        })
 
         instaTopViewModel.clickEvent.observe(viewLifecycleOwner, Observer {
             activity?.let {
-                if (instaViewModel.selectedItem.media.mediaType != MEDIA_TYPE_IMAGE) {
-                    showToast("video is not supported now")
-                } else {
-                    if (instaViewModel.isAspectRatio.value == false) {
-                        coroutineScope.launch(Dispatchers.Main) {
-                            binding.progressbar.visibility = VISIBLE
-                            binding.ivPreview.crop()
-                        }
-                    } else {
-                        config.onResultListener?.onSuccess(instaViewModel.getPickleResult())
-                        it.supportFragmentManager.popBackStack()
+                if (instaViewModel.isAspectRatio.value == false) {
+                    coroutineScope.launch(Dispatchers.Main) {
+                        binding.progressbar.visibility = VISIBLE
+                        binding.ivPreview.crop()
                     }
+                } else {
+                    config.onResultListener?.onSuccess(instaViewModel.getPickleResult())
+                    it.supportFragmentManager.popBackStack()
                 }
             }
         })
@@ -189,22 +193,6 @@ class InstaFragment constructor() : Fragment(), OnInstaEventListener {
     private fun loadPickleMedia(item: PickleItem) {
         if (item.media.mediaType == MEDIA_TYPE_IMAGE) {
             binding.ivPreview.setPickleMedia(item, instaViewModel.isAspectRatio.value)
-        }
-    }
-
-    override fun onItemClick(view: View?, item: PickleItem) {
-        if(instaViewModel.selectionManager.isLast(item)) return
-        loadPickleMedia(item)
-        instaViewModel.setSelected(item)
-        instaViewModel.selectionManager.itemClick(item)
-        if (instaViewModel.selectedItem.media.mediaType != MEDIA_TYPE_IMAGE) {
-            showToast("video is not supported now")
-            binding.ivPreview.clear()
-            return
-        }
-        view?.let {
-            binding.recyclerView.smoothScrollBy(0, it.top)
-            binding.previewAppbarLayout.setExpanded(true)
         }
     }
 

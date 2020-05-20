@@ -24,8 +24,11 @@ class InstaViewModel(application: Application) : AndroidViewModel(application)
     var isAspectRatio: LiveData<Boolean> = _isAspectRatio
     private val _isMultipleSelect = MutableLiveData<Boolean>(false)
     var isMultipleSelect: LiveData<Boolean> = _isMultipleSelect
-    lateinit var selectedItem: PickleItem
+    private val _selectedItem = MutableLiveData<PickleItem>()
+    var selectedItem: LiveData<PickleItem> = _selectedItem
     var config: InstaConfig? = null
+    var selectedPosition: Int? = null
+        private set
 
     val selectionManager = InstaSelectionManager()
 
@@ -52,9 +55,17 @@ class InstaViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun setSelected(selected: PickleItem){
-        selectedItem = selected
+//    fun setSelected(selected: PickleItem){
+//        selectedItem = selected
+//        selectionManager.itemClick(selected)
+//    }
+
+    fun itemClicked(position: Int, selected: PickleItem){
+        selectionManager.itemClick(selected)
+        selectedPosition = position
+        _selectedItem.postValue(selected)
     }
+
 
     fun multipleClicked() {
         selectionManager.clear()

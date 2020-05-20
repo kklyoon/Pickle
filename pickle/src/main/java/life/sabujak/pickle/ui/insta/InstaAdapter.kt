@@ -12,7 +12,7 @@ import life.sabujak.pickle.util.recyclerview.BindingHolder
 import life.sabujak.pickle.util.bindingadapter.PickleBindingComponent
 import life.sabujak.pickle.util.Logger
 
-class InstaAdapter(val lifecycle: Lifecycle, val selectionManager:InstaSelectionManager, val onEventListener: OnInstaEventListener )
+class InstaAdapter(val lifecycle: Lifecycle, val selectionManager:InstaSelectionManager, val viewModel: InstaViewModel )
     : PagedListAdapter<PickleItem, BindingHolder<ViewInstaMediaBinding>>(diffCallback) {
 
     val logger = Logger.getLogger(this.javaClass.simpleName)
@@ -56,7 +56,8 @@ class InstaAdapter(val lifecycle: Lifecycle, val selectionManager:InstaSelection
                 item?.let {
                     holder.binding.setVariable(BR.item, it)
                     holder.binding.setVariable(BR.instaSelectionManager, selectionManager)
-                    holder.binding.setVariable(BR.onEventListener, onEventListener)
+                    holder.binding.setVariable(BR.vm, viewModel)
+                    holder.binding.setVariable(BR.itemPosition, position)
                     holder.binding.executePendingBindings()
                 }
             }

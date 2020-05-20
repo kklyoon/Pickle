@@ -14,15 +14,18 @@
             name="instaSelectionManager"
             type="life.sabujak.pickle.ui.insta.InstaSelectionManager" />
         <variable
-            name="onEventListener"
-            type="life.sabujak.pickle.ui.insta.OnInstaEventListener" />
+            name="vm"
+            type="life.sabujak.pickle.ui.insta.InstaViewModel"/>
+        <variable
+            name="itemPosition"
+            type="Integer"/>
 
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:onClick="@{v->onEventListener.onItemClick(v, item)}"
+        app:onClick="@{() -> vm.itemClicked(itemPosition, item)}"
         android:orientation="vertical">
         <ImageView
             android:id="@+id/iv_media_item"
