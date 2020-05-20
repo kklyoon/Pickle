@@ -4,25 +4,21 @@ import android.app.Application
 import androidx.lifecycle.*
 import androidx.paging.LivePagedListBuilder
 import androidx.paging.PagedList
-import life.sabujak.pickle.ui.dialog.Config
 import life.sabujak.pickle.data.cursor.ImageCursorFactory
 import life.sabujak.pickle.data.datasource.PickleDataSourceFactory
 import life.sabujak.pickle.data.entity.Media
 import life.sabujak.pickle.data.entity.PickleItem
-import life.sabujak.pickle.ui.dialog.PickleResult
 import life.sabujak.pickle.ui.insta.internal.InstaResult
 import life.sabujak.pickle.util.Logger
 import java.util.ArrayList
 
 class InstaViewModel(application: Application) : AndroidViewModel(application)
-//    , PickleItem.Handler
 {
-
     val logger = Logger.getLogger(this.javaClass.simpleName)
 
-    private val _isAspectRatio = MutableLiveData<Boolean>(false)
+    private val _isAspectRatio = MutableLiveData(false)
     var isAspectRatio: LiveData<Boolean> = _isAspectRatio
-    private val _isMultipleSelect = MutableLiveData<Boolean>(false)
+    private val _isMultipleSelect = MutableLiveData(false)
     var isMultipleSelect: LiveData<Boolean> = _isMultipleSelect
     private val _selectedItem = MutableLiveData<PickleItem>()
     var selectedItem: LiveData<PickleItem> = _selectedItem
@@ -55,10 +51,6 @@ class InstaViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-//    fun setSelected(selected: PickleItem){
-//        selectedItem = selected
-//        selectionManager.itemClick(selected)
-//    }
 
     fun itemClicked(position: Int, selected: PickleItem){
         selectionManager.itemClick(selected)

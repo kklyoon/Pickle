@@ -42,7 +42,6 @@ class CropImageView @JvmOverloads constructor(
             if (w == it.imageRect.width() &&
                 h == it.imageRect.height()
             ) {
-                logger.d("onSizeChanged : $cropData")
                 scaleX = it.scaleX
                 scaleY = it.scaleY
                 translationX = it.translationX

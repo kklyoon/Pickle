@@ -14,11 +14,10 @@ class InstaSelectionManager : BaseObservable() {
 
     val count = MutableLiveData(0)
 
-    private val _isMultiSelect = MutableLiveData<Boolean>(false)
+    private val _isMultiSelect = MutableLiveData(false)
     val isMultiSelect: LiveData<Boolean> = _isMultiSelect
 
     fun setMultipleSelect(isMultiple: Boolean) {
-        logger.d("setMultipleSelect ${isMultiple}")
         _isMultiSelect.postValue(isMultiple)
         updateCount()
         notifyChange()
@@ -49,7 +48,6 @@ class InstaSelectionManager : BaseObservable() {
         cropData?.let {
             selectionList.put(pickleItem, cropData)
         }
-        logger.d("ItemID: ${pickleItem.getId()} listsize :${selectionList.size}, $cropData")
     }
 
     private fun updateCount() {
@@ -71,7 +69,6 @@ class InstaSelectionManager : BaseObservable() {
     fun setMultiCropData(pickleItem: PickleItem? = lastSelected, cropData: CropData) {
         pickleItem?.let {
             selectionList[it] = cropData
-            logger.d("setMultiCropData : ${it}, $cropData")
         }
     }
 

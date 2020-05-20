@@ -16,6 +16,8 @@ import life.sabujak.pickle.Pickle;
 import life.sabujak.pickle.data.entity.PickleError;
 import life.sabujak.pickle.ui.dialog.OnResultListener;
 import life.sabujak.pickle.ui.dialog.PickleResult;
+import life.sabujak.pickle.ui.insta.internal.InstaResult;
+import life.sabujak.pickle.ui.insta.internal.OnInstaResultListener;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -48,6 +50,17 @@ public class MainActivity extends AppCompatActivity {
                         });
                         break;
                     case "Insta":
+                        Pickle.startInsta(getSupportFragmentManager(), new OnInstaResultListener() {
+                            @Override
+                            public void onSuccess(InstaResult result) {
+                                adapter.submitList(result.getMediaList());
+                            }
+
+                            @Override
+                            public void onError(PickleError error) {
+                                Toast.makeText(MainActivity.this, error.getErrorCode().name(), Toast.LENGTH_SHORT).show();
+                            }
+                        });
                         break;
                 }
             }

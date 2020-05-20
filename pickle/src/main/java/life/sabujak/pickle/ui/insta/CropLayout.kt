@@ -64,7 +64,7 @@ class CropLayout @JvmOverloads constructor(
     private lateinit var frameCache: RectF
     private val listeners = CopyOnWriteArrayList<OnCropListener>()
 
-    private lateinit var selectionManager: InstaSelectionManager
+    private lateinit var instalViewModel: InstaViewModel
 
     init {
         val attr = context.obtainStyledAttributes(attrs, R.styleable.CropLayout, 0, 0)
@@ -131,7 +131,7 @@ class CropLayout @JvmOverloads constructor(
 
     suspend fun crop() {
         val cropData = getCropData()
-        if (selectionManager.isMultiSelect.value == true)
+        if (instalViewModel.isMultipleSelect.value == true)
             getBitmapFromUri(selectItem!!.mediaUri)?.let { bitmap ->
                 multiTransForm(bitmap, cropData)
             } else {
@@ -218,7 +218,7 @@ class CropLayout @JvmOverloads constructor(
         cropImageView.adjustViewBounds = true
 
         selectItem?.let { it ->
-            val cropData = selectionManager.getCropData(it)
+            val cropData = instalViewModel.selectionManager.getCropData(it)
             cropData?.let { data ->
                 cropImageView.setCropData(data)
             }?: run {
@@ -277,8 +277,8 @@ class CropLayout @JvmOverloads constructor(
             .listener(CropLayoutRequestListener(isAspectRatio)).into(cropImageView)
     }
 
-    fun setSelectionManager(selectionManager: InstaSelectionManager) {
-        this.selectionManager = selectionManager
+    fun setViewModel(viewModel: InstaViewModel) {
+        this.instalViewModel = viewModel
     }
 
     private suspend fun getBitmapFromUri(uri: Uri): Bitmap? = withContext(Dispatchers.IO) {
@@ -332,7 +332,7 @@ class CropLayout @JvmOverloads constructor(
         val selectedMedia = selectItem
 //        logger.d("saveCropData() ${cropData}")
         selectedMedia?.let {
-            selectionManager.updateCropData(it, cropData)
+            instalViewModel.selectionManager.updateCropData(it, cropData)
         }
     }
 

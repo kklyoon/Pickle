@@ -18,9 +18,9 @@ class Pickle {
         )
     }
     @JvmStatic
-    fun startInsta(fragmentManager: FragmentManager, containerId: Int, listener: OnInstaResultListener) {
+    fun startInsta(fragmentManager: FragmentManager, listener: OnInstaResultListener) {
         fragmentManager.beginTransaction()
-            .add(containerId, InstaFragment(InstaConfig.Builder(listener).build()), "Insta")
+            .add(android.R.id.content, InstaFragment(InstaConfig.Builder(listener).build()), "Insta")
             .addToBackStack(null)
             .commit()
         }

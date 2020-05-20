@@ -26,7 +26,6 @@ import life.sabujak.pickle.data.entity.PickleItem
 import life.sabujak.pickle.databinding.FragmentInstaBinding
 import life.sabujak.pickle.ui.common.OnBitmapResultListener
 import life.sabujak.pickle.util.Logger
-import life.sabujak.pickle.util.ext.showToast
 
 class InstaFragment constructor() : Fragment(){
     val logger = Logger.getLogger(this.javaClass.simpleName)
@@ -97,7 +96,7 @@ class InstaFragment constructor() : Fragment(){
                 })
                 (it as CoordinatorLayout.LayoutParams).behavior = behavior
             }
-            ivPreview.setSelectionManager(instaViewModel.selectionManager)
+            ivPreview.setViewModel(instaViewModel)
             ivPreview.addOnCropListener(object : OnCropListener {
                 override fun onSuccess(bitmap: Bitmap) {
                     logger.d("Bitmap size : ${bitmap.width} , ${bitmap.height}")
